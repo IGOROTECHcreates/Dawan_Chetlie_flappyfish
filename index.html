@@ -73,7 +73,7 @@
     <audio id="flap-sound" src="music/flap-101soundboards.mp3"></audio>
     <audio id="score-sound" src="music/point-101soundboards.mp3"></audio>
     <audio id="hit-sound" src="music/flappy-bird-hit-sound-101soundboards.mp3"></audio>
-    <audio id="bg-music" src="music/Snicky-Snitch(chosic.com).mp3" loop></audio>
+    <audio id="bg-music" src="music/Snicky-Snitch.mp3" loop></audio>
   </div>
 
   <script>
@@ -166,7 +166,6 @@
       hitSound.currentTime = 0;
       hitSound.play();
       bgMusic.pause();
-
       setTimeout(() => {
         alert("Game Over! Your score: " + score);
         location.reload();
@@ -211,13 +210,12 @@
       fish.style.top = fishY + "px";
       gameStarted = true;
 
-      // Fix autoplay handling
+      // ✅ Background music starts here
       bgMusic.volume = 0.5;
       bgMusic.currentTime = 0;
-      bgMusic.muted = false;
       bgMusic.play().catch(err => {
-        console.warn("Background music failed to play:", err);
-        alert("Please click the screen to enable music.");
+        console.warn("Music failed to play:", err);
+        alert("Click anywhere to allow music to play.");
       });
 
       setInterval(() => {
