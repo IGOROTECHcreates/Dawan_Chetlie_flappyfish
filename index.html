@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Flappy Fish</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { overflow: hidden; font-family: sans-serif; }
+
+    #game-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      background: url('assets/background.jpg') no-repeat center center;
+      background-size: cover;
+    }
+
+    #fish {
+      position: absolute;
+      width: 60px;
+      height: auto;
+      top: 50%;
+      left: 80px;
+      display: none;
+      z-index: 2;
+    }
+
+    #start-btn {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 15px 30px;
+      font-size: 20px;
+      background: #fff;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      z-index: 10;
+    }
+
+    #score-display {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 32px;
+      color: #fff;
+      text-shadow: 2px 2px 5px #000;
+      z-index: 10;
+      display: none;
+    }
+
+    .pipe {
+      position: absolute;
+      width: 80px;
+      background-color: #2ecc71;
+      border: 4px solid #27ae60;
+      box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+      border-radius: 10px;
+      z-index: 1;
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <div id="score-display">Score: 0</div>
+    <button id="start-btn">Start Game</button>
+    <img id="fish" src="assets/fish.png" alt="Fish" />
+
+    <!-- Sound Effects -->
+    <audio id="flap-sound" src="music/flap-101soundboards.mp3"></audio>
+    <audio id="score-sound" src="music/point-101soundboards.mp3"></audio>
+    <audio id="hit-sound" src="music/flappy-bird-hit-sound-101soundboards.mp3"></audio>
+    <audio id="gameover-sound" src="music/"></audio>
+    <audio id="bg-music" src="music/snicky-snitch.mp3" loop></audio> <!-- NEW -->
+  </div>
+
+  <script>
+    const fish = document.getElementById("fish");
+    const gameContainer = document.getElementById("game-container");
+    const startBtn = document.getElementById("start-btn");
+    const scoreDisplay = document.getElementById("score-display");
+
+    // Sound effects
+    const flapSound = document.getElementById("flap-sound");
+    const scoreSound = document.getElementById("score-sound");
+    const hitSound = document.getElementById("hit-sound");
+    const gameoverSound = document.getElementById("gameover-sound");
+    const bgMusic = document.getElementById("bg-music"); // NEW
+
+    let fishY = window.innerHeight / 2;
+    let velocity = 0;
+    let gravity = 0.25;
+    let jump = -6;
+    let pipes = [];
+    let pipeInterval = 1500;
+    let gameOver = false;
+    let gameStarted = false;
+    let score = 0;
+
+    function createPipe() {
+      const pipeGap = 160;
+      const minHeight = 120;
+      const maxOffset = window.innerHeight - pipeGap - minHeight;
+      const offset = Math.floor(Math.random() * maxOffset) + minHeight;
+
+      const topPipe = document.createElement("div");
+      topPipe.className = "pipe";
+      topPipe.style.height = offset + "px";
+      topPipe.style.left = "100vw";
+      topPipe.style.top = "0";
+
+      const bottomPipe = document.createElement("div");
+      bottomPipe.className = "pipe";
+      bottomPipe.style.height = (window.innerHeight - offset - pipeGap) + "px";
+      bottomPipe.style.left = "100vw";
+      bottomPipe.style.top = (offset + pipeGap) + "px";
+
+      gameContainer.appendChild(topPipe);
+      gameContainer.appendChild(bottomPipe);
+
+      pipes.push({
+        top: topPipe,
+        bottom: bottomPipe,
+        x: window.innerWidth,
+        scored: false
+      });
+    }
+
+    function updatePipes() {
+      for (let i = pipes.length - 1; i >= 0; i--) {
+        const pipe = pipes[i];
+        pipe.x -= 2;
+        pipe.top.style.left = pipe.x + "px";
+        pipe.bottom.style.left = pipe.x + "px";
+
+        if (pipe.x + 80 < 0) {
+          pipe.top.remove();
+          pipe.bottom.remove();
+          pipes.splice(i, 1);
+        }
+
+        const fishRect = fish.getBoundingClientRect();
+        const topRect = pipe.top.getBoundingClientRect();
+        const bottomRect = pipe.bottom.getBoundingClientRect();
+
+        if (
+          fishRect.left < topRect.right &&
+          fishRect.right > topRect.left &&
+          (fishRect.top < topRect.bottom || fishRect.bottom > bottomRect.top)
+        ) {
+          endGame();
+        }
+
+        if (!pipe.scored && pipe.x + 80 < fishRect.left) {
+          pipe.scored = true;
+          score++;
+          scoreDisplay.textContent = "Score: " + score;
+          scoreSound.currentTime = 0;
+          scoreSound.play();
+        }
+      }
+    }
+
+    function endGame() {
+      gameOver = true;
+      hitSound.currentTime = 0;
+      hitSound.play();
+      bgMusic.pause(); // stop background music on game over
+      setTimeout(() => {
+        gameoverSound.play();
+        alert("Game Over! Your score: " + score);
+        location.reload();
+      }, 500);
+    }
+
+    function gameLoop() {
+      if (gameOver || !gameStarted) return;
+
+      velocity += gravity;
+      fishY += velocity;
+      fish.style.top = fishY + "px";
+
+      if (fishY > window.innerHeight - 30 || fishY < 0) {
+        endGame();
+      }
+
+      updatePipes();
+      requestAnimationFrame(gameLoop);
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (e.code === "Space" && gameStarted) {
+        velocity = jump;
+        flapSound.currentTime = 0;
+        flapSound.play();
+      }
+    });
+
+    document.addEventListener("touchstart", () => {
+      if (gameStarted) {
+        velocity = jump;
+        flapSound.currentTime = 0;
+        flapSound.play();
+      }
+    });
+
+    startBtn.addEventListener("click", () => {
+      startBtn.style.display = "none";
+      scoreDisplay.style.display = "block";
+      fish.style.display = "block";
+      fish.style.top = fishY + "px";
+      gameStarted = true;
+
+      bgMusic.play(); // play background music
+
+      setInterval(() => {
+        if (!gameOver) createPipe();
+      }, pipeInterval);
+      gameLoop();
+    });
+  </script>
+</body>
+</html>
